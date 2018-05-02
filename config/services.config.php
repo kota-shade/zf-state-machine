@@ -12,7 +12,7 @@ return [
         }
     ],
     'abstract_factories' => [
-        StateMachineNS\Factory\StateMachineAbstractFactory::class
+        StateMachineNS\Service\StateMachineAbstractFactory::class
     ],
     'invokables' => [
     ],
