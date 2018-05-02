@@ -1,0 +1,29 @@
+{
+    "name": "kota-shade/zf-state-machine",
+    "description": "Non-deterministic Finite State Machine for Zend Framework 3",
+    "type": "library",
+    "require": {
+        "php": ">=7.0",
+        "zendframework/zendframework": ">=3.0.0",
+        "doctrine/dbal": ">=2.3.3",
+        "doctrine/doctrine-orm-module": ">=0.7",
+        "zendframework/zend-validator": "^2.6",
+        "zendframework/zend-servicemanager": "^2.7.5 || ^3.0.3"
+    },
+    "repositories":[
+    ],
+    "autoload": {
+        "psr-4": {
+            "KotaShade\\StateMachine\\": "src/"
+        },
+        "classmap": [
+            "./Module.php"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Kotrekhov Andrey",
+            "email": "kota.shade@gmail.com"
+        }
+    ]
+}
