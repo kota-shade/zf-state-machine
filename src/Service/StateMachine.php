@@ -13,20 +13,46 @@ use KotaShade\StateMachine\Entity\TransitionBInterface;
 use Zend\Validator\ValidatorInterface;
 use Zend\Validator\ValidatorPluginManager;
 use KotaShade\StateMachine\Functor as FunctorNS;
+use Doctrine\ORM\EntityManager as EntityManager;
+use Doctrine\Common\Collections\ArrayCollection;
 
 abstract class StateMachine
 {
+    /**
+     * @var EntityManager
+     */
+    protected $em;
     /**
      * @var ValidatorPluginManager
      */
     protected $validatorPM;
 
+    /**
+     * @var FunctorNS\FunctorPluginManager
+     */
+    protected $functorPM;
+
+    /**
+     * get repository of transition A-table
+     * @return \Doctrine\ORM\EntityRepository
+     */
+    abstract protected function getTransitionARepository();
+
+    /**
+     * get action entity by action identifier
+     * @param string $action
+     * @return mixed
+     */
+    abstract protected function getActionEntity($action);
+
     public function __construct(
         EntityManager $em,
         ValidatorPluginManager $validatorPM,
         FunctorNS\FunctorPluginManager $functorPM
-    )
-    {
+    ) {
+        $this->em = $em;
+        $this->validatorPM = $validatorPM;
+        $this->functorPM = $functorPM;
     }
 
     /**
@@ -75,11 +101,62 @@ abstract class StateMachine
         if ($conditionName == null) {
             return true;
         }
-        if ($this->checkActionCondition($errors, $conditionName, $objE, $data=[]) == false) {
+        if ($this->checkActionCondition($errors, $conditionName, $objE, $data) == false) {
             return false;
         }
         return true;
     }
+    //======================
+    /**
+     * возвращает список доступных действий для заданного состояния
+     * @param $state
+     * @return array
+     * FIXME нет способа получить по имени состояния ентити состояния, т.к. нет репозитория состояний.
+     */
+    public function getActionsForState($state)
+    {
+        $repo = $this->getTransitionARepository();
+        /** @var ArrayCollection $res */
+        $transitionList = $repo->findBy([
+            'src' => $stateE->getId()
+        ]);
+
+        $ret = [];
+
+        /** @var TransitionAInterface $transitionE */
+        foreach ($transitionList as $transitionE) {
+            $actionE = $transitionE->getAction();
+            $ret[$actionE->getId()] = $actionE;
+        }
+        return $ret;
+    }
+
+    /**
+     * возвращает список доступных действий для данной ентити (проверяются условия доступности действия)
+     * @param object $objE
+     * @param array $data
+     * @return array
+     */
+    public function getActions($objE, $data=[])
+    {
+        $stateE = $this->getObjectState($objE);
+        $repo = $this->getTransitionARepository();
+        /** @var ArrayCollection $res */
+        $transitionList = $repo->findBy([
+            'src' => $stateE->getId()
+        ]);
+
+        /** @var TransitionAInterface $transitionE */
+        foreach($transitionList as $transitionE) {
+            $condition = $transitionE->getCondition();
+            if ($this->checkActionCondition( $messages, $condition, $objE, $data)) {
+                $actionE = $transitionE->getAction();
+                $ret[$actionE->getId()] = $actionE;
+            }
+        }
+        return $ret;
+    }
+    //=============================
 
     /**
      * get transition by action name if the transition exists for the object in current state without checking conditions
@@ -102,18 +179,29 @@ abstract class StateMachine
     /**
      * @param $stateE
      * @param $actionE
-     * @return TransitionAInterface
+     * @return null|TransitionAInterface
      */
-    abstract protected function getTransitionAForState($stateE, $actionE);
-    abstract protected function getObjectState($objE);
-    abstract protected function setObjectState($objE, $stateE);
-    abstract protected function getActionEntity($action);
+    protected function getTransitionAForState($stateE, $actionE)
+    {
+        $repo = $this->getTransitionARepository();
+        /** @var TransitionAInterface $res */
+        $res = $repo->findOneBy([
+            'src' => $stateE->getId(),
+            'action' => $actionE->getId()
+        ]);
+        return $res;
+    }
 
     /**
      * @param TransitionAInterface $transitionE
      * @return array|\Traversable
      */
-    abstract protected function getTransitionBList(TransitionAInterface $transitionE);
+    protected function getTransitionBList(TransitionAInterface $transitionE)
+    {
+        /** @var ArrayCollection $ret */
+        $ret = $transitionE->getTransitionsB();
+        return $ret->toArray();
+    }
 
     /**
      * @param TransitionAInterface $transitionE
@@ -146,7 +234,7 @@ abstract class StateMachine
      * @param TransitionBInterface $trB
      * @return int
      */
-    public function cmpWeight(TransitionBInterface $trA, TransitionBInterface $trB)
+    protected function cmpWeight(TransitionBInterface $trA, TransitionBInterface $trB)
     {
         if ($trA->getWeight() == null) {
             return 1;
@@ -160,11 +248,11 @@ abstract class StateMachine
     }
 
     /**
-     * выполняет валидацию по условию $condition
-     * @param $validatorMessages
-     * @param string $conditionName
-     * @param $objE
-     * @param array $data
+     * validate, get validator by $conditionName
+     * @param $validatorMessages - validation error messages
+     * @param string $conditionName - validator name
+     * @param object $objE - entity with state
+     * @param array $data external data
      * @return bool
      */
     protected function checkActionCondition(&$validatorMessages, $conditionName, $objE, $data=[])
@@ -175,7 +263,7 @@ abstract class StateMachine
 
         /** @var ValidatorInterface $validator */
         $validator = $this->getCondition($conditionName);
-        if (($validator->validate($objE, $data)) == false) {
+        if (($validator->isValid($objE, $data)) == false) {
             $validatorMessages = $validator->getMessages();
             return false;
         }
@@ -183,14 +271,15 @@ abstract class StateMachine
         return true;
     }
 
+    /**
+     * @param $conditionName
+     * @return ValidatorInterface
+     */
     protected function getCondition($conditionName)
     {
-        if (($realName = Yii::getAlias('@'.$conditionName)) == false) {
-            $realName = $conditionName;
-        }
-
-        $cond = Yii::createObject($realName);
-        return $cond;
+        /** @var ValidatorInterface $validator */
+        $validator = $this->validatorPM->get($conditionName);
+        return $validator;
     }
 
     /**
@@ -211,15 +300,32 @@ abstract class StateMachine
 
     /**
      * @param string $functorName
-     * @return FunctorNS\FunctorInterface object
+     * @return FunctorNS\FunctorInterface
      */
     protected function getFunctor($functorName)
     {
-        if (($realName = Yii::getAlias('@'.$functorName)) == false) {
-            $realName = $functorName;
-        }
         /** @var FunctorNS\FunctorInterface $functor */
-        $functor = Yii::createObject($realName);
+        $functor = $this->functorPM->get($functorName);
         return $functor;
+    }
+
+    /**
+     * @param object $objE
+     * @return mixed
+     */
+    protected function getObjectState($objE)
+    {
+        return $objE->getState();
+    }
+
+    /**
+     * @param $objE
+     * @param $stateE
+     * @return $this
+     */
+    protected function setObjectState($objE, $stateE)
+    {
+        $objE->setState($stateE);
+        return $this;
     }
 }
