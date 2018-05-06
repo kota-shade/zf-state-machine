@@ -15,6 +15,7 @@ use Zend\Validator\ValidatorPluginManager;
 use KotaShade\StateMachine\Functor as FunctorNS;
 use Doctrine\ORM\EntityManager as EntityManager;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Criteria;
 
 abstract class StateMachine
 {
@@ -31,6 +32,16 @@ abstract class StateMachine
      * @var FunctorNS\FunctorPluginManager
      */
     protected $functorPM;
+
+    /*
+     * \Doctrine\ORM\Mapping\ClassMetadataFactory
+     */
+    private $metadataFactory;
+
+    /**
+     * @var \Doctrine\ORM\EntityRepository
+     */
+    private $stateRepository = null;
 
     /**
      * get repository of transition A-table
@@ -69,7 +80,7 @@ abstract class StateMachine
             throw new ExceptionNS\ActionNotExistsForState($objE, $action);
         }
         $conditionName = $transitionE->getCondition();
-        if ($this->checkActionCondition($errors, $conditionName, $objE, $data=[]) == false) {
+        if ($this->checkActionCondition($errors, $conditionName, $objE, $data) == false) {
             throw new ExceptionNS\ActionNotAllowed($objE, $action, $errors);
         }
 
@@ -106,15 +117,15 @@ abstract class StateMachine
         }
         return true;
     }
-    //======================
+
     /**
-     * возвращает список доступных действий для заданного состояния
+     * get array of actions which exists for this state (without condition checking)
      * @param $state
      * @return array
-     * FIXME нет способа получить по имени состояния ентити состояния, т.к. нет репозитория состояний.
      */
     public function getActionsForState($state)
     {
+        $stateE = $this->getStateByIdent($state);
         $repo = $this->getTransitionARepository();
         /** @var ArrayCollection $res */
         $transitionList = $repo->findBy([
@@ -122,7 +133,6 @@ abstract class StateMachine
         ]);
 
         $ret = [];
-
         /** @var TransitionAInterface $transitionE */
         foreach ($transitionList as $transitionE) {
             $actionE = $transitionE->getAction();
@@ -132,7 +142,7 @@ abstract class StateMachine
     }
 
     /**
-     * возвращает список доступных действий для данной ентити (проверяются условия доступности действия)
+     * get the existent actions for entity (conditions are checked)
      * @param object $objE
      * @param array $data
      * @return array
@@ -146,6 +156,7 @@ abstract class StateMachine
             'src' => $stateE->getId()
         ]);
 
+        $ret = [];
         /** @var TransitionAInterface $transitionE */
         foreach($transitionList as $transitionE) {
             $condition = $transitionE->getCondition();
@@ -194,13 +205,14 @@ abstract class StateMachine
 
     /**
      * @param TransitionAInterface $transitionE
-     * @return array|\Traversable
+     * @return ArrayCollection
      */
     protected function getTransitionBList(TransitionAInterface $transitionE)
     {
+        $sort = new Criteria(null, ['weight' => Criteria::DESC]);
         /** @var ArrayCollection $ret */
-        $ret = $transitionE->getTransitionsB();
-        return $ret->toArray();
+        $ret = $transitionE->getTransitionsB()->matching($sort);
+        return $ret;
     }
 
     /**
@@ -211,12 +223,11 @@ abstract class StateMachine
      */
     protected function getTransitionB(TransitionAInterface $transitionE, $objE, $data)
     {
+        /** @var ArrayCollection $list */
         $list = $this->getTransitionBList($transitionE);
-        if (count($list) == 0) {
+        if ($list->count() == 0) {
             return null;
         }
-
-        usort($list, array($this, 'cmpWeight'));
         /** @var TransitionBInterface $transitionBE */
         foreach($list as $transitionBE) {
             $conditionName = $transitionBE->getCondition();
@@ -226,25 +237,6 @@ abstract class StateMachine
         }
 
         throw new ExceptionNS\InvalidTransition($transitionE);
-    }
-
-    /**
-     * DESC sort order for array
-     * @param TransitionBInterface $trA
-     * @param TransitionBInterface $trB
-     * @return int
-     */
-    protected function cmpWeight(TransitionBInterface $trA, TransitionBInterface $trB)
-    {
-        if ($trA->getWeight() == null) {
-            return 1;
-        }
-        elseif($trB->getWeight() == null) {
-            return -1;
-        }
-        else {
-            return ($trA->getWeight() < $trB->getWeight()) ? 1: -1;
-        }
     }
 
     /**
@@ -327,5 +319,41 @@ abstract class StateMachine
     {
         $objE->setState($stateE);
         return $this;
+    }
+
+    /**
+     * @return \Doctrine\ORM\Mapping\ClassMetadataFactory
+     */
+    protected function getMetadataFactory() {
+        if ($this->metadataFactory == null) {
+            $this->metadataFactory = $this->em->getMetadataFactory();
+        }
+        return $this->metadataFactory;
+    }
+
+    /**
+     * @return \Doctrine\Common\Persistence\ObjectRepository|\Doctrine\ORM\EntityRepository
+     * @throws \Doctrine\Common\Persistence\Mapping\MappingException
+     * @throws \ReflectionException
+     */
+    protected function getStateRepository()
+    {
+        if ($this->stateRepository === null) {
+            $repo = $this->getTransitionARepository();
+            $entityName = $repo->getClassName();
+            $mdf = $this->getMetadataFactory();
+            $metadata = $mdf->getMetadataFor($entityName);
+            $stateClassName = $metadata->getAssociationTargetClass('src');
+            $this->stateRepository = $this->em->getRepository($stateClassName);
+        }
+
+        return $this->stateRepository;
+    }
+
+    protected function getStateByIdent($state)
+    {
+        $stateRepo = $this->getStateRepository();
+        $stateE = $stateRepo->find($state);
+        return $stateE;
     }
 }
