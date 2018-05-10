@@ -173,14 +173,14 @@ abstract class StateMachine
      * get transition by action name if the transition exists for the object in current state without checking conditions
      * @param $objE
      * @param $action
-     * @return TransitionAInterface
+     * @return TransitionAInterface|null
      */
     protected function getActionTransition($objE, $action)
     {
         $stateE = $this->getObjectState($objE);
         /** @var object $actionE */
         if(($actionE = $this->getActionEntity($action)) == null) {
-            throw new ExceptionNS\ActionNotExists($action);
+            return null;
         }
 
         $transitionE = $this->getTransitionAForState($stateE, $actionE);
