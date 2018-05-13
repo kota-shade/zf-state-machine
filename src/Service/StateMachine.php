@@ -17,6 +17,10 @@ use Doctrine\ORM\EntityManager as EntityManager;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Criteria;
 
+/**
+ * Class StateMachine
+ * @package KotaShade\StateMachine\Service
+ */
 abstract class StateMachine
 {
     /**
@@ -76,6 +80,8 @@ abstract class StateMachine
      */
     public function doAction($objE, $action, array $data = [])
     {
+        $loopGuard = $this->getLoopGuard($objE);
+
         if (($transitionE = $this->getActionTransition($objE, $action)) == null) {
             throw new ExceptionNS\ActionNotExistsForState($objE, $action);
         }
@@ -122,6 +128,8 @@ abstract class StateMachine
      * get array of actions which exists for this state (without condition checking)
      * @param $state
      * @return array
+     * @throws \Doctrine\Common\Persistence\Mapping\MappingException
+     * @throws \ReflectionException
      */
     public function getActionsForState($state)
     {
@@ -350,10 +358,29 @@ abstract class StateMachine
         return $this->stateRepository;
     }
 
+    /**
+     * @param $state
+     * @return null|object
+     * @throws \Doctrine\Common\Persistence\Mapping\MappingException
+     * @throws \ReflectionException
+     */
     protected function getStateByIdent($state)
     {
         $stateRepo = $this->getStateRepository();
         $stateE = $stateRepo->find($state);
         return $stateE;
     }
+
+    /**
+     * Return guard to privent loop in state machine. The guard check loop in it's constructor
+     * and set pair obj+state into stack. Dectructor pops pair from stack
+     * @param $objE
+     * @return CallStack
+     */
+    protected function getLoopGuard($objE)
+    {
+        $loopGuard = new CallStack($objE, $this->getObjectState($objE));
+        return $loopGuard;
+    }
+
 }
