@@ -53,9 +53,9 @@ class Module implements
         }
 
         $serviceListener->addServiceManager(
-            KotaShade\StateMachine\Functor\FunctorPluginManagerInterface::class,
+            Functor\FunctorPluginManagerInterface::class,
             FunctorNS\FunctorProviderInterface::CONFIG_KEY,
-            KotaShade\StateMachine\Functor\FunctorProviderInterface::class,
+            Functor\FunctorProviderInterface::class,
             'getFunctorProviderConfig'
         );
     }
