@@ -3,11 +3,10 @@ namespace Test\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
-// use Rn5Core\Utils\GuidGenerator;
 
 /**
  * Class PassTicketCar
- * @package Kpp\Entity
+ * @package Test\Entity
  *
  * @ORM\Table(name="pass_ticket_car",  indexes={
  *          @ORM\Index(name="del", columns={"del"}),
@@ -16,7 +15,7 @@ use Doctrine\Common\Collections\ArrayCollection;
  *          @ORM\UniqueConstraint(name="ticketId_idx", columns={"ticket_id"})
  *      }
  * )
- * @ORM\Entity(repositoryClass="Kpp\Entity\Repository\PassTicketCar")
+ * @ORM\Entity(repositoryClass="Test\Entity\Repository\PassTicketCar")
  */
 class PassTicketCar
 {
@@ -35,14 +34,6 @@ class PassTicketCar
      *      options={"comment": "идентификатор пропуска - напечатанный номер" } )
      */
     private $ticketId;
-
-//    /**
-//     * @var \Kpp\Entity\Employee
-//     *
-//     * @ORM\ManyToOne(targetEntity="Employee", inversedBy="carTickets")
-//     * @ORM\JoinColumn(name="employee_id", referencedColumnName="id", nullable=true)
-//     */
-//    private $employee;
 
     /**
      * @var boolean
@@ -79,14 +70,6 @@ class PassTicketCar
      */
     private $issueDate;
 
-//    /**
-//     * @var User
-//     *
-//     * @ORM\ManyToOne(targetEntity="User")
-//     * @ORM\JoinColumn(name="issue_user_id", referencedColumnName="id", nullable=true)
-//     */
-//    private $issueUser;
-
     /**
      * @var string|null
      *
@@ -117,32 +100,9 @@ class PassTicketCar
      */
     private $passTicketStatus;
 
-//    /**
-//     * @var Car
-//     *
-//     * @ORM\ManyToOne(targetEntity="Car", inversedBy="carTickets")
-//     * @ORM\JoinColumn(name="car_id", referencedColumnName="id", nullable=false)
-//     *
-//     */
-//    private $car;
-
-//    /**
-//     * @var ArrayCollection
-//     * @ORM\OneToMany(targetEntity="PassTicketCar2GuardSite", mappedBy="passTicketCar", cascade={"persist"})
-//     *
-//     */
-//    private $guardSites;
-
-//    /**
-//     * @var Orders
-//     * @ORM\ManyToOne(targetEntity="Orders", inversedBy="carTickets")
-//     * @ORM\JoinColumn(name="order_id", referencedColumnName="id", nullable=false)
-//     */
-//    private $order;
 
     public function __construct()
     {
-        //$this->guardSites = new ArrayCollection();
     }
 
     public function __clone()
@@ -286,24 +246,6 @@ class PassTicketCar
     }
 
     /**
-     * @return User
-     */
-    public function getIssueUser()
-    {
-        return $this->issueUser;
-    }
-
-    /**
-     * @param User $issueUser
-     * @return self
-     */
-    public function setIssueUser($issueUser)
-    {
-        $this->issueUser = $issueUser;
-        return $this;
-    }
-
-    /**
      * @return \DateTime
      */
     public function getStartDate()
@@ -354,78 +296,6 @@ class PassTicketCar
     public function setTicketId($ticketId)
     {
         $this->ticketId = $ticketId;
-        return $this;
-    }
-
-    /**
-     * @return \Kpp\Entity\Employee
-     */
-    public function getEmployee()
-    {
-        return $this->employee;
-    }
-
-    /**
-     * @param \Kpp\Entity\Employee $employee
-     * @return self
-     */
-    public function setEmployee($employee)
-    {
-        $this->employee = $employee;
-        return $this;
-    }
-
-    /**
-     * @return Car
-     */
-    public function getCar()
-    {
-        return $this->car;
-    }
-
-    /**
-     * @param Car $car
-     * @return self
-     */
-    public function setCar($car)
-    {
-        $this->car = $car;
-        return $this;
-    }
-
-    /**
-     * @return ArrayCollection
-     */
-    public function getGuardSites()
-    {
-        return $this->guardSites;
-    }
-
-    /**
-     * @param ArrayCollection $guardSites
-     * @return self
-     */
-    public function setGuardSites($guardSites)
-    {
-        $this->guardSites = $guardSites;
-        return $this;
-    }
-
-    /**
-     * @return Orders
-     */
-    public function getOrder()
-    {
-        return $this->order;
-    }
-
-    /**
-     * @param Orders $order
-     * @return self
-     */
-    public function setOrder($order)
-    {
-        $this->order = $order;
         return $this;
     }
 

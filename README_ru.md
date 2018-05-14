@@ -83,9 +83,102 @@
  1. выдать (issue)
 В состоянии active можно только смотреть (view).  
 #### Создаем классы таблиц
-[Словарь состояний пропуска](./example/Entity/PassTicketCar.php)
+1. [Словарь состояний пропуска](example/Entity/PassTicketCar.php)
+1. [Пропуск](example/Entity/)
+1. [Словарь действий (или переходов)](example/Entity/PassTicketAction.php)
+1. [Таблица переходов A](example/Entity/TransitionATicketCar.php)
+1. [Таблица переходов B](example/Entity/TransitionBTicketCar.php)
+Загружаем данные в словари состояний, действий, и таблицы переходов:
+1. [pass_ticket_status.sql](example/Sql/pass_ticket_status.sql)
+1. [pass_ticket_action.sql](example/Sql/pass_ticket_action.sql)
+1. [tr_a_ticket_car.sql](example/Sql/tr_a_ticket_car.sql)
+1. [tr_b_ticket_car.sql](example/Sql/tr_b_ticket_car.sql)
+
+В таблице pass_ticket_car создаем запись - пропуск, в поле pass_ticket_status_id записываем 'draft'
+Рассмотрим таблицы переходов A(tr_a_ticket_car) и B(tr_b_ticket_car)
+В таблице A имеем:
+1. `src_id` - идентификатор исходного состояния объекта (внешний ключ к словарю состояний пропуска),
+1. `action_id`- идентификатор дейсвия над объектом (внешний ключ к словарю действий),
+1. `condition` - алиас валидатора, который будет проверять возможность совершения действия
+Я предпочитаю использовать валидаторы-наследники \Zend\Validator\ValidatorChain, это
+позволяет описать множество проверок, объединенных логическим AND, легко расширяемо при необходимости
+добавить еще одну проверку.
+
+В таблице B имеем связанные с записью из таблицы А одну или несколько записей содержащих:
+1. `transition_a_id` - идентификатор связи с записью из таблицы А,
+1. `dst_id` - идентификатор нового состояния объекта (внешний ключ к словарю состояний пропуска),
+1. `weight` - вес перехода (объяснение ниже),
+1. `condition` - условие выбора данного перехода - алиас валидатора или null,
+1. `pre_functor` - алиас функтора, который будет выполнен перед сменой состояния объекта,
+1. `post_functor` - алиас функтора, который будет выполнен после смены состояния объекта.
+
+Если действие может привести только к одному новому состоянию, тогда weight не важен, а condition оставляем null.
+Если же нужно, чтобы одно действие могло приводить к одному из списка состояний, тогда в таблице В будет несколько
+записей связанных с одной из таблицы А, при этом задаются weight, и condition (алиас валидатора проверки постусловия). 
+Записи будут проверяться в порядке уменьшения веса, первая же запись, у которой проверка постусловия будет успешной.
+Если поле `condition` is null - считается, что проверка успешна. Размещайте ее с наименьшим весом.
+
 #### Описываем конфигурацию.
+конфигурацию валидаторов и функторов включим в module.config.php. Предлагаю конфигурацию валидаторов
+и функторов держать в отдельных файлах и включать их в module.config.php. 
+Например:
+```php
+$validator = include(__DIR__ . '/validators.config.php');
+$smConfig = include(__DIR__ . '/state_machine.config.php');
+
+return array_merge(
+    $validator,
+    $smConfig,
+    [
+    .....
+```
+Алиасы на валидаторы
+```php
+use Test\Validator as ValidatorNS;
+use Test\StateMachine\TicketCar\Validator as SM_TCValidatorNS;
+
+return [
+    'validators' => [
+        'aliases' => [
+            //=============== TicketCar===========================
+            'SM_TC_Draft_view' => SM_TCValidatorNS\ViewChain::class,
+            'SM_TC_Draft_edit' => SM_TCValidatorNS\EditChain::class,
+            'SM_TC_Draft_issue' => SM_TCValidatorNS\EditChain::class,
+
+            'SM_TC_Active_view' => SM_TCValidatorNS\ViewChain::class,
+        ],
+```
+Валидаторы будут найдены и созданы обычным путем с помощью валидатор-менеджера.
+
+Функторы:
+```php
+use Test\StateMachine\Functor as RootFunctorNS;
+use Test\StateMachine\TicketCar\Functor as TCFunctorNS;
+
+return [
+    KotaShade\StateMachine\Functor\FunctorProviderInterface::CONFIG_KEY => [
+        'aliases' => [
+            //================== PassTicketCar ================
+            'SMF_TC_Draft_edit' => TCFunctorNS\Edit::class,
+            'SMF_TC_Draft_issue' => TCFunctorNS\Issue::class,
+        ],
+        'abstract_factories' => [
+        ],
+        'factories' => [
+            RootFunctorNS\EmptyFunctor::class => RootFunctorNS\EmptyFunctorFactory::class,
+            TCFunctorNS\Edit::class => RootFunctorNS\BaseFunctorFactory::class,
+            TCFunctorNS\Issue::class => RootFunctorNS\BaseFunctorFactory::class,
+        ],
+        'invokables' => [
+
+        ],
+    ]
+];
+```
+Функторы будут найдены и созданы с помощью FunctorPluginManager, по аналогии с сервисами.
+
 #### Создаем валидаторы и функторы
+
 #### Используем
 ## Внутренняя организация
 #### Основные методы

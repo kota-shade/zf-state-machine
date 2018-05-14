@@ -12,7 +12,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * Class PassTicketStatus
- * @package Kpp\Entity
+ * @package Test\Entity
  *
  * @ORM\Table(name="pass_ticket_status",  indexes={
  *      },

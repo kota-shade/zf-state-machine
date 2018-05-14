@@ -11,7 +11,7 @@ use Test\Entity as EntityNS;
  * Class TransitionATicketCar
  * @package Test\Entity\StateMachine
  *
- * @ORM\Table(name="kpp_tr_a_ticket_car",  indexes={
+ * @ORM\Table(name="tr_a_ticket_car",  indexes={
  *
  *      },
  *      uniqueConstraints={
