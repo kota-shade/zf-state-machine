@@ -132,7 +132,8 @@ return array_merge(
     [
     .....
 ```
-Алиасы на валидаторы
+Алиасы на валидаторы (так имхо удобнее). Валидаторы будут создаваться стандартным образом 
+через ValidatorManager
 ```php
 use Test\Validator as ValidatorNS;
 use Test\StateMachine\TicketCar\Validator as SM_TCValidatorNS;
@@ -178,12 +179,111 @@ return [
 Функторы будут найдены и созданы с помощью FunctorPluginManager, по аналогии с сервисами.
 
 #### Создаем валидаторы и функторы
+Пример реализации можно посмотреть здесь:
+1. [EditChain](example/Validator/EditChain.php)
+1. [BaseChain](example/Validator/BaseChain.php)
+
+Использование валидаторов, пронаследованных от ValidatorChain позволит легко наращивать и изменять характер проверок.
+В частности один из валидаторов в цепи ValidatorChain
+может проверять права на данное действие через RBAC
+
+В функторе выполняем дополнительные действия.
+[Edit.php](example/Functor/Edit.php) - пример реализации.
 
 #### Используем
+Ниже пример кода использования в действии ActionController-а для проверки доступности дейсвия
+и ниже для выполнения самого действия.  
+
+```php
+    $sm = $this->getSeviceLocator();
+    $em = $this->getEntityManager();
+    /** @var \Test\Entity\PassTicketCar $objE */
+    $objE =$em->find(\Test\Entity\PassTicketCar::class, $id);
+    if ($objE == null) {
+        throw new \Exception('Не найден пропуск с идентификатором id=', $id);
+    }
+
+    /** @var \Test\StateMachine\TicketCar $stateMachine */
+    $stateMachine = $sm->get(\Test\StateMachine\TicketCar::class);
+    if ($stateMachine->hasAction($objE, $action) == false)  {
+        throw new \Exception(sprintf('Объект %d не имеет в текущем состоянии %s действия %s',
+            $objE->getId(), $objE->getPassTicketStatus()->getId(), $action));
+    }
+
+............
+    $em->beginTransaction();
+    try {
+        $stateMachine->doAction($objE, $action, ['sm' => $stateMachine]);
+        $em->flush();
+        $em->commit();
+        echo 'URA action done';
+    } catch(\Throwable $e) {
+        $em->rollback();
+        echo 'FAIL action =' . $action . $e->getMessage();
+    }
+
+```
 ## Внутренняя организация
 #### Основные методы
+```php
+/**
+ * Выполняется действие над объектом и меняет состояние объекта согласно таблицы переходов
+ * @param object $objE
+ * @param string $action
+ * @param array $data  extra data
+ * @return array
+ * @throws ExceptionNS\StateMachineException
+ */
+public function doAction($objE, $action, array $data = [])
+
+/**
+ * Проверяет возможность выполнения действия над объектом в текущем состоянии
+ * @param object $objE
+ * @param string $action
+ * @param array $data
+ * @return bool
+ */
+public function hasAction($objE, $action, $data=[])
+
+/**
+* возвращает список действий, которые существуют для данного состояния без учета проверок на возможность выполнения
+* @param $state
+* @return array
+* @throws \Doctrine\Common\Persistence\Mapping\MappingException
+* @throws \ReflectionException
+*/
+public function getActionsForState($state)
+
+/**
+* возвращает список возможных действий над объектом в текущем состоянии с учетом проверок
+* @param object $objE
+* @param array $data
+* @return array
+*/
+public function getActions($objE, $data=[])
+
+```
+        
+    
 #### Матрица переходов
+
 #### Валидаторы действия
 #### Функторы
+Единственное требование к функтору - реализация интерфейса \KotaShade\StateMachine\Functor\FunctorInterface
+
+[Edit.php](example/Functor/Edit.php) - пример реализации. 
+
+Функтор в свою очерень может вызывать другие стейтмашины.
+
+Функторы условно можно разделить на префункторы и постфункторы. Их реализация ничем не 
+отличается, просто первые вызываются до смены состояния объекта, а вторые уже после.
+Желающие использовать событийную модель могут легко реализовать функторы, которые будут 
+бросать нужные им события.
 #### Транзакции, flush() и etc
+НКА не управляет транзакциями, не вызывает flush(), commit(), rollback(). 
 #### Каскадные вызовы и защита от зацикливания
+Внутри функторов вы можете вызывать другие стейтмашины или эту же стейтмашину, но с другим объектом. 
+Можно даже вызвать стейтмашину с тем же объектом,
+но состояние его уже должно измениться, то есть это возможно в постфункторе. Иногда (редко)
+это необходимо для организации каскадно выполняемых действий.
+Иначе при определнении зацикливания будет выброшено исключение LoopException
