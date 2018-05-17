@@ -12,9 +12,10 @@ class Edit implements FunctorInterface
     /**
      * @param PassTicketCar $objE
      * @param array $data
+     * @param string $action
      * @return mixed
      */
-    public function __invoke($objE, array &$data = [])
+    public function __invoke($objE, $action, array &$data = [])
     {
         //do something
         //you can call the other state-machine

@@ -17,7 +17,8 @@ interface FunctorInterface
     /**
      * @param object $objE
      * @param array $data
+     * @param string $action
      * @return mixed
      */
-    public function __invoke($objE, array &$data = []);
+    public function __invoke($objE, $action, array &$data = []);
 } 
