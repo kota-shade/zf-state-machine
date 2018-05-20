@@ -12,7 +12,8 @@ return [
         }
     ],
     'abstract_factories' => [
-        StateMachineNS\Service\StateMachineAbstractFactory::class
+        //set this if you want to use abstract factory with 'doctrine' connection
+        //StateMachineNS\Service\StateMachineAbstractFactory::class
     ],
     'invokables' => [
     ],

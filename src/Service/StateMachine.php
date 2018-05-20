@@ -95,9 +95,9 @@ abstract class StateMachine
             return $data;
         }
 
-        $this->doFunctor($transitionBE->getPreFunctor(), $objE, $action, $data);
+        $this->doFunctor($transitionBE->getPreFunctor(), $objE, $action, FunctorNS\FunctorInterface::PREFUNCTOR, $data);
         $this->setObjectState($objE, $transitionBE->getDst());
-        $this->doFunctor($transitionBE->getPostFunctor(), $objE, $action, $data);
+        $this->doFunctor($transitionBE->getPostFunctor(), $objE, $action, FunctorNS\FunctorInterface::POSTFUNCTOR, $data);
 
         return $data;
     }
@@ -286,9 +286,10 @@ abstract class StateMachine
      * @param string $functorName
      * @param object $objE
      * @param string $action
+     * @param string $functorType
      * @param array &$data
      */
-    protected function doFunctor($functorName, $objE, $action, array &$data)
+    protected function doFunctor($functorName, $objE, $action, $functorType, array &$data)
     {
         if ($functorName == '') {
             return;
@@ -296,7 +297,7 @@ abstract class StateMachine
         if (($functor = $this->getFunctor($functorName)) == null) {
             return;
         }
-        $functor($objE, $action, $data);
+        $functor($objE, $action, $functorType, $data);
     }
 
     /**
