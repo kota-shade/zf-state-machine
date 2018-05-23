@@ -78,12 +78,12 @@ The car pass ticket has 2 states:
  1. draft
  1. active
 
-We can do in the draft state:
+We can do in the `draft` state:
  1. view
  1. edit
  1. issue
 
-We can do in the draft state:
+We can do in the `active` state:
  1. view
   
 #### Create table classes
