@@ -339,20 +339,15 @@ This is example: [Edit.php](example/Functor/Edit.php).
 
 The functor, in turn, can call other NFA. The functor can be called before changing of the object state or after this. 
 
-Функторы условно можно разделить на префункторы и постфункторы. Их реализация ничем не 
-отличается, просто первые вызываются до смены состояния объекта, а вторые уже после.
-Желающие использовать событийную модель могут легко реализовать функторы, которые будут 
-бросать нужные им события.
-
 #### Transactions, flush () and etc
 
-НКА не управляет транзакциями, не вызывает flush(), commit(), rollback(). 
+NFA doesn't begin transaction, doesn't call Doctrina flush(), commit(), rollback(). 
+The programmer should use these on their own.
 
 #### Recursive calls and infinite loops defence
 
-Внутри функторов вы можете вызывать другие стейтмашины или эту же стейтмашину, но с другим объектом. 
-Можно даже вызвать стейтмашину с тем же объектом,
-но состояние его уже должно измениться, то есть это возможно в постфункторе. Иногда (редко)
-это необходимо для организации каскадно выполняемых действий.
-Иначе при определнении зацикливания будет выброшено исключение LoopException
+Inside the functors you can call other NFA or the same NFA but with a different object. 
+You can even call a statemachine with the same object,
+but the state must already have to change, that is possible in post-functor. 
+Otherwise, the loop is found and the LoopException exception will be thrown.
 
