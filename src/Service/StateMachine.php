@@ -95,6 +95,20 @@ abstract class StateMachine
             return $data;
         }
 
+        $data = $this->doTransition($transitionBE, $objE, $action, $data);
+        return $data;
+    }
+
+    /**
+     * exec functors and change status
+     * @param TransitionBInterface $transitionBE
+     * @param $objE
+     * @param string $action
+     * @param array $data
+     *
+     * @return array
+     */
+    protected function doTransition(TransitionBInterface $transitionBE, $objE, $action, array $data = []) {
         $this->doFunctor($transitionBE->getPreFunctor(), $objE, $action, FunctorNS\FunctorInterface::PREFUNCTOR, $data);
         $this->setObjectState($objE, $transitionBE->getDst());
         $this->doFunctor($transitionBE->getPostFunctor(), $objE, $action, FunctorNS\FunctorInterface::POSTFUNCTOR, $data);
