@@ -214,8 +214,8 @@ This is the functor example.
 [Edit.php](example/Functor/Edit.php).
 
 #### Use it!
-Ниже код - пример использования в действии ActionController-а для проверки доступности дейсвия, а также
- для выполнения самого действия.  
+The following code is an example of how to use an controller's action to check the availability of the action, and
+ to perform the action itself.
 
 ```php
     $sm = $this->getSeviceLocator();
@@ -249,45 +249,46 @@ This is the functor example.
 ## Internal organization
 #### Transition matrix
 <a name="transition"></a>
-Матрица переходов описывается связкой двух таблиц A и B.
+The transition matrix is described by two tables A and B.
 
-В таблице A имеем:
-1. `src_id` - идентификатор исходного состояния объекта (внешний ключ к словарю состояний пропуска),
-1. `action_id`- идентификатор дейсвия над объектом (внешний ключ к словарю действий),
-1. `condition` - имя/алиас валидатора, который будет проверять возможность совершения действия
-Использование валидаторов-наследников `Zend\Validator\ValidatorChain`
-позволяет описать множество проверок, объединенных логическим AND и легко расширяемо при необходимости
-добавить еще одну проверку.
+The `table A` has fields:
+1. `src_id` - the ID of the original state of the object (foreign key to the dictionary of object state),
+1. `action_id`- action ID of the object (foreign key to the action dictionary),
+1. `condition` - name / alias of the validator which will check the possibility of the action
 
-В таблице B имеем связанные с записью из таблицы А одну или несколько записей содержащих:
-1. `transition_a_id` - идентификатор связи с записью из таблицы А,
-1. `dst_id` - идентификатор нового состояния объекта (внешний ключ к словарю состояний пропуска),
-1. `weight` - вес перехода (объяснение ниже),
-1. `condition` - условие выбора данного перехода - алиас валидатора или null,
-1. `pre_functor` - имя/алиас функтора, который будет выполнен перед сменой состояния объекта,
-1. `post_functor` - имя/алиас функтора, который будет выполнен после смены состояния объекта.
+Hint:
+The use of validators extended from `Zend\Validator\ValidatorChain`
+allows you to describe a variety of checks, combined by logical AND.
 
-Если действие может привести только к одному новому состоянию, тогда `weight` не важен, а `condition` оставляем null.
-Если же нужно, чтобы одно действие могло приводить к одному из списка состояний, тогда в таблице В будет несколько
-записей связанных с одной из таблицы А, при этом задаются `weight`, и `condition` (алиас валидатора проверки постусловия). 
-Записи будут проверяться в порядке уменьшения веса. Первая же запись, у которой проверка постусловия будет успешной,
-будет определять конечное состояние и выполняемые функторы.
-Если поле `condition` is null - считается, что проверка успешна. Размещайте ее с наименьшим весом.
+Table B is linked by a one-to-many relationship to `table A` and contains:
+1. `transition_a_id` - ID of the link to the record from `table A`,
+1. `dst_id` - the ID of the new state of the object (foreign key to the dictionary of object states),
+1. `weight` - transition weight (explanation below),
+1. `condition` - the condition of this transition - the validator name/alias or null,
+1. `pre_functor` - name / alias of the functor to be executed before changing the state of the object,
+1. `post_functor` - name / alias of the functor to be executed after changing the state of the object,
 
-НКА выполнен в виде абстрактного класса. 
-Для реализации конкретного НКА необходимо определить 2 абстрактных метода
-1. abstract protected function getTransitionARepository(); - получение репозитория А-таблицы
-2. abstract protected function getActionEntity($action); - получение ентити действия по строковому имени.
- 
-Если состояние объекта хранится не в свойстве state, тогда необходимо переопределить методы
-`getObjectState($objE)` и `setObjectState($objE, $stateE)`
+If the action can only lead to one new state, then `weight` is not important and `condition` is null.
+If you want one action to be able to result in one of the list of states, then `table B` will have several
+records associated with one of the `table A`, these records are set to `weight`, and `condition` (name/alias of the postcondition check validator).
+Records will be checked in order of weight reduction. The first entry where the postcondition check is successful,
+will determine the final state and the functors to be executed.
+If the `condition` field is null, the check is considered successful. Place it with the least weight.
 
-Для удобства создания объекта стейтмашины можно воспользоваться абстрактой фабрикой `KotaShade\StateMachine\Service\StateMachineAbstractFactory`
+The base class of NFA is abstract.
+Expand it and define 2 abstract methods.
+1. abstract protected function getTransitionARepository(); - get A-table repository
+2. abstract protected function getActionEntity($action); - get entity of action by name.
+
+If the state of the object is not stored in the state property, then you must override the methods
+`getObjectState($objE)` and `setObjectState($obj, $stateE)` 
+
+You can use the abstract factory `KotaShade\StateMachine\Service\StateMachineAbstractFactory` for state machine object easy creation.
 
 #### Basic public methods
 ```php
 /**
- * Выполняется действие над объектом и меняет состояние объекта согласно таблицы переходов
+ * do action on object change object state according transition table
  * @param object $objE
  * @param string $action
  * @param array $data  extra data
@@ -297,7 +298,7 @@ This is the functor example.
 public function doAction($objE, $action, array $data = [])
 
 /**
- * Проверяет возможность выполнения действия над объектом в текущем состоянии
+ * Checks whether the action on the object can be performed in the current state
  * @param object $objE
  * @param string $action
  * @param array $data
@@ -306,7 +307,7 @@ public function doAction($objE, $action, array $data = [])
 public function hasAction($objE, $action, $data=[])
 
 /**
-* возвращает список действий, которые существуют для данного состояния без учета проверок на возможность выполнения
+* return action list on the object in the current state without validator check
 * @param $state
 * @return array
 * @throws \Doctrine\Common\Persistence\Mapping\MappingException
@@ -315,7 +316,7 @@ public function hasAction($objE, $action, $data=[])
 public function getActionsForState($state)
 
 /**
-* возвращает список возможных действий над объектом в текущем состоянии с учетом проверок
+* return action list on the object in the current state WITH validator check
 * @param object $objE
 * @param array $data
 * @return array
@@ -326,15 +327,17 @@ public function getActions($objE, $data=[])
 
 #### Validators for the action
 
-Объекты, реализующие `\Zend\Validator\ValidatorInterface`, подчиняющиеся всем стандартным правилам создания и использования вадидаторов в ZF.
-В метод isValid() будет передан объект, над которым совершается действие и массив доп.данных `$data`, передаваемый в методы `doAction()`, `hasAction()`
+Objects that implement `\Zend\Validator\ValidatorInterface`, obeying all the standard rules of creation and use of validation in ZF.
+The method isValid() is called with object parameter and external data array 
+( the same external data which is passed to `doAction()`, `hasAction()` methods ).
 
 #### Functors
-Единственное требование к функтору - реализация интерфейса `\KotaShade\StateMachine\Functor\FunctorInterface`
 
-[Edit.php](example/Functor/Edit.php) - пример реализации. 
+The only requirement for the functor is interface implementation `\KotaShade\StateMachine\Functor\Functor Interface`.
 
-Функтор в свою очерень может вызывать другие стейтмашины.
+This is example: [Edit.php](example/Functor/Edit.php). 
+
+The functor, in turn, can call other NFA. The functor can be called before changing of the object state or after this. 
 
 Функторы условно можно разделить на префункторы и постфункторы. Их реализация ничем не 
 отличается, просто первые вызываются до смены состояния объекта, а вторые уже после.
