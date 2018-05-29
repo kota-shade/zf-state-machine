@@ -5,16 +5,16 @@ Non-deterministic Finite State Machine for Zend Framework.
 
 The features of this non-deterministic finite state machine are:
 -----------------------------------
-1. Use [Doctrine2](http://doctrine2.readthedocs.io/en/stable/tutorials/getting-started.html) to describe a list of States, actions, and transitions
-1. Using standard Zend Framework validators to verify what actions are possible for the object.
-1. The use of [function objects](https://en.wikipedia.org/wiki/Function_object) (functors) to perform additional actions
+1. [Doctrine2] (http://doctrine2.readthedocs.io/en/stable/tutorials/getting-started.html) is used to describe a list of states, actions and transitions
+1. Standard Zend Framework validators is used to verify what actions are possible for the object.
+1. [Function objects](https://en.wikipedia.org/wiki/Function_object) (functors) is used to perform additional actions
  during transition or after it.
-1. Protection from infinite loops in a recursive NFA calls
+1. There is protection from infinite loops in a recursive NFA calls
 
 ## Content
 1. [Application area](#Application_area)
 1. [How it works](#How_it_works)
-1. Example of implementation and use:
+1. Example of the implementation and usage:
     1. [Create table classes](#Create_table_classes)
     1. [Create the class of state machine](#Create_class_of_state_machine)
     1. [The description of the configuration](#description_of_the_configuration)
@@ -32,44 +32,41 @@ The features of this non-deterministic finite state machine are:
 <a name="Application_area"></a>
 ## Application area
 
-An application is often needs to restrict access to certain actions on the object.
+Often the application must restrict the access to certain actions on the object.
 [RBAC](https://en.wikipedia.org/wiki/Role-based_access_control)
--modules successfully do these types of restrictions.
-However, the RBAC module controls the action grants by roles, but does not control the possibility of actions doing
- depending on the state of the object. 
-For example: the issuing of the pass. Bob can edit the pass, but as long as
-the pass is not issued.
-This task successfully solves by using a finite state machine ([NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)).
+-modules do these types of restrictions successfully.
+The RBAC module controls the actions by roles and permissions. But RBAC does not control the possibility of actions depending by the state of the object.
+For example: the pass ticket system. Bob can edit,view,issue the pass while it is in the draft state, but when the pass is issued Bob can only view it.
+This task is successfully solved by using a finite state machine ([NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)).
 
 <a name="How_it_works"></a>
 ## How it works:
 
-The `object` is the Doctrine entity with a property that stores the state of the object (usually a many-to-one relationship to the states dictionary.)
+The `object` is the Doctrine entity. It has a property that stores the state of the object (usually a many-to-one relationship to the states dictionary.)
 
-The `actions` dictionary is the Doctrine entity - dictionary of possible actions.
+The `actions` is the Doctrine entity. It is the dictionary of possible actions.
 
-The `transition matrix`: the two entities `A` and `B` that are related by a relationship
-one to many.
+The `transition matrix` are two entities `A` and `B` that are related by the
+one-to-many relationship.
    
-For an object that has a state (from state dictionary), we describe the actions dictionary 
-and the `transition matrix`. 
-`Transition matrix` describes transitions from one to another state
-when performing an action. NFA allows us to have the same state, one other state or one of several states
-after doing the action.
+The object has the state from state dictionary, and we describe the action's dictionary and the `transition matrix`. 
+`Transition matrix` describes transitions from one to another object's state.
+When we do the `action` on the object the NFA changes the object state from one to another according `transition matrix`. 
+[NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) allows us to have the same state, one other state or one of several states after the action is finished.
 
-The [NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) method get the object, the action name and the additional data. 
-1. NFA checks the possibility of the action:
-    1. there is the action for the object
-    1. ability to do the action on the object in the current state according to the `transition matrix`
+The [NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) doAction() method get the object, the action name and the additional data. 
+1. It checks the possibility of the action:
+    1. does the action exist in the dictionary 
+    1. does the action exist on the object in the current state according to the `transition matrix`
     1. additional checks, such as action grants for the current user
 1. if checks was successful:
-    1. find the new state for the object
-    1. if some operations are defined to perform before state changing, do these operations
-    1. change the object state to a new state
-    1. if some operations are defined to perform after state changing, do these operations
+    1. NFA finds the new state for the object according to the `transition matrix`
+    1. if some operations are defined to perform before the state changing, NFA does these operations
+    1. NFA changes the object state to a new state
+    1. if some operations are defined to perform after state changing, NFA does these operations
     
 <a name="Example_of_implementation"></a>
-## Example of implementation and using
+## Example of implementation and usage
 Look the car pass ticket system.
 The car pass ticket has 2 states:
  1. draft
