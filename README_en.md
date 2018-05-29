@@ -5,7 +5,7 @@ Non-deterministic Finite State Machine for Zend Framework.
 
 The features of this non-deterministic finite state machine are:
 -----------------------------------
-1. [Doctrine2] (http://doctrine2.readthedocs.io/en/stable/tutorials/getting-started.html) is used to describe a list of states, actions and transitions
+1. [Doctrine2](http://doctrine2.readthedocs.io/en/stable/tutorials/getting-started.html) is used to describe a list of states, actions and transitions
 1. Standard Zend Framework validators is used to verify what actions are possible for the object.
 1. [Function objects](https://en.wikipedia.org/wiki/Function_object) (functors) is used to perform additional actions
  during transition or after it.
