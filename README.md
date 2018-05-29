@@ -8,11 +8,11 @@ and to perform additional operations during object's transition
 from one state to another or immediately after the transition.
 
 ## Application area
-An application is often needed to restrict access to certain actions on the object.
+Often the application must restrict the access to certain actions on the object.
 [RBAC](https://en.wikipedia.org/wiki/Role-based_access_control)
 -modules do these types of restrictions successfully.
-However, the RBAC module controls the actions by roles and permissions. But RBAC does not control the possibility of actions by the state of the object. 
-For example: the pass ticket system. Bob can edit,view,issue the pass while it is in draft state, but when the pass is issued Bob can only view it.
+The RBAC module controls the actions by roles and permissions. But RBAC does not control the possibility of actions depending by the state of the object.
+For example: the pass ticket system. Bob can edit,view,issue the pass while it is in the draft state, but when the pass is issued Bob can only view it.
 This task is successfully solved by using a finite state machine ([NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)).
 
 The features of this non-deterministic finite state machine are:
