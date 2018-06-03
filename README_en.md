@@ -26,7 +26,7 @@ The features of this non-deterministic finite state machine are:
     1. [Validators for the action](#Validators)
     1. [Functors](#Functors)
     1. [Transactions, flush () and etc](#Transactions_flush)
-    1. [Recursive calls and infinite loops defence](#Recursive_calls)
+    1. [Recursive calls and loopback protection](#Recursive_calls)
     
 
 <a name="Application_area"></a>
@@ -54,12 +54,14 @@ The object has the state from state dictionary, and we describe the action's dic
 When we do the `action` on the object the NFA changes the object state from one to another according `transition matrix`. 
 [NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) allows us to have the same state, one other state or one of several states after the action is finished.
 
-The [NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) doAction() method get the object, the action name and the additional data. 
-1. It checks the possibility of the action:
+The [NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) method `doAction()`  gets the object, 
+the action name and the additional data.
+
+1. The NFA verifies whether the action is possible:
     1. does the action exist in the dictionary 
     1. does the action exist on the object in the current state according to the `transition matrix`
     1. additional checks, such as action grants for the current user
-1. if checks was successful:
+1. on successful verification:
     1. NFA finds the new state for the object according to the `transition matrix`
     1. if some operations are defined to perform before the state changing, NFA does these operations
     1. NFA changes the object state to a new state
@@ -68,7 +70,7 @@ The [NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) doAct
 <a name="Example_of_implementation"></a>
 ## Example of implementation and usage
 Look the car pass ticket system.
-The car pass ticket has 2 states:
+The car pass ticket can have 2 states:
  1. draft
  1. active
 
@@ -81,27 +83,33 @@ We can do in the `active` state:
  1. view
 
 <a name="Create_table_classes"></a>
-#### Create table classes
+#### The creation of table classes
+Let's create classes of tables
+
 1. [Dictionary of states](example/Entity/PassTicketCar.php)
 1. [Car ticket pass](example/Entity/)
 1. [Dictionary of actions](example/Entity/PassTicketAction.php)
 1. [Transition table A](example/Entity/TransitionATicketCar.php)
 1. [Transition table B](example/Entity/TransitionBTicketCar.php)
 
-Load data into database tables:
+Let's load data into database tables:
 1. [pass_ticket_status.sql](example/Sql/pass_ticket_status.sql)
 1. [pass_ticket_action.sql](example/Sql/pass_ticket_action.sql)
 1. [tr_a_ticket_car.sql](example/Sql/tr_a_ticket_car.sql)
 1. [tr_b_ticket_car.sql](example/Sql/tr_b_ticket_car.sql)
 
-Create the pass ticket row in the pass_ticket_car table. Set `draft` into `pass_ticket_status_id` field.
+Let's create the row in the table `pass_ticket_car` and
+set `draft` into `pass_ticket_status_id` field.
 There are transition tables: `tr_a_ticket_car` (table A) и `tr_b_ticket_car` (table B).
-Detail fields description you can read in [Internal organization--Transition matrix](#transition)
+Names of fields and their intentions are descibed
+ in the section [Internal organization--Transition matrix](#transition)
 
 <a name="Create_class_of_state_machine"></a>
 #### Create the class of state machine
-1. Create your [state machine](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) class, extend it from abstract class \KotaShade\StateMachine\Service\StateMachine.
-2. Overload abstract methods:
+
+1. Create your state machine class, extend it from 
+abstract class \KotaShade\StateMachine\Service\StateMachine.
+2. Implement abstract methods:
     1. abstract protected function getTransitionARepository();
     2. abstract protected function getActionEntity($action);
     
@@ -127,7 +135,7 @@ Detail fields description you can read in [Internal organization--Transition mat
     
     By default, it is assumed that the object stores its state in the `state` property and there is a getter and a setter for it.
     
-    In our case, the property is called 'passTicketStatus', so we overload the methods. 
+    In our case, the property is called 'passTicketStatus', so we reload the methods. 
     `getObjectState($objE)` and `setObjectState($objE, $stateE)`
     [example](example/Ticketcar.php)
     
@@ -135,7 +143,8 @@ Detail fields description you can read in [Internal organization--Transition mat
 <a name="description_of_the_configuration"></a>
 #### The description of the configuration.
 
-The configuration of validators and functors will be included in the module.config.php. I suggest to keep configuration of validators
+The configuration of validators and functors will be included in the module.config.php. 
+I like to keep configuration of validators
 and the functors in separate files and include them in the `module.config.php`.
 Example:
 ```php
@@ -196,23 +205,24 @@ The `FunctorPluginManager` helps to create `functors` like services.
 
 <a name="Create_validators"></a>
 #### Create validators and functors
+
 Example:
 1. [EditChain](example/Validator/EditChain.php)
 1. [BaseChain](example/Validator/BaseChain.php)
 
 Hint:
-Using validators, which extended by `ValidatorChain` will allow you to easily add and modify checks.
+Using validators, inherited from `ValidatorChain` will allow you to easily add and modify checks.
 In particular one of the validators in a `ValidatorChain` chain
 can check the rights to this action via `RBAC`
 
-The functor contains additional code which you want to do during the changing object state.
+The functor contains additional code you must do during the changing object state.
 This is the functor example. 
 [Edit.php](example/Functor/Edit.php).
 
 <a name="Use_it"></a>
 #### Use it!
-The following code is an example of how to use an controller's action to check the availability of the action, and
- to perform the action itself.
+The following code is an example of how to use the controller's action to check 
+the availability of the action, and to perform the action itself.
 
 ```php
     $sm = $this->getSeviceLocator();
@@ -266,19 +276,21 @@ Table B is linked by a one-to-many relationship to `table A` and contains:
 1. `pre_functor` - name / alias of the functor to be executed before changing the state of the object,
 1. `post_functor` - name / alias of the functor to be executed after changing the state of the object,
 
-If the action can only lead to one new state, then `weight` is not important and `condition` is null.
-If you want one action to be able to result in one of the list of states, then `table B` will have several
-records associated with one of the `table A`, these records are set to `weight`, and `condition` (name/alias of the postcondition check validator).
-Records will be checked in order of weight reduction. The first entry where the postcondition check is successful,
-will determine the final state and the functors to be executed.
-If the `condition` field is null, the check is considered successful. Place it with the least weight.
+If the action can only lead to one new state, then `weight` is not important, 
+and we leave `condition` as null. 
+If you want one action to lead to one of the list of states, 
+then there will be several records in `Table B` associated with one record of the table A.
+This records in `table B` must have different weight and condition (the postcondition validator verification alias). 
+Records will be checked in order of weight descending. The first record, in which the postcondition check 
+is successful, will determine the final state and executed functors. 
+If the `condition` field is null, it is considered that the check is successful. Place it with the smallest `weight`.
 
 The base class of NFA is abstract.
 Expand it and define 2 abstract methods.
 1. abstract protected function getTransitionARepository(); - get A-table repository
 2. abstract protected function getActionEntity($action); - get entity of action by name.
 
-If the state of the object is not stored in the state property, then you must override the methods
+If the state of the object is not stored in the state property, then you must redefine methods
 `getObjectState($objE)` and `setObjectState($obj, $stateE)` 
 
 You can use the abstract factory `KotaShade\StateMachine\Service\StateMachineAbstractFactory` for state machine object easy creation.
@@ -327,9 +339,9 @@ public function getActions($objE, $data=[])
 <a name="Validators"></a>
 #### Validators for the action
 
-Objects that implement `\Zend\Validator\ValidatorInterface`, obeying all the standard rules of creation and use of validation in ZF.
-The method isValid() is called with object parameter and external data array 
-( the same external data which is passed to `doAction()`, `hasAction()` methods ).
+Validators are the classes that implement `\Zend\Validator\ValidatorInterface`.
+The validator method `isValid()` is called with two parameters: the object and external data array 
+ which is passed to `doAction()`, `hasAction()` methods.
 
 <a name="Functors"></a>
 #### Functors
@@ -341,13 +353,13 @@ This is example: [Edit.php](example/Functor/Edit.php).
 The functor, in turn, can call other NFA. The functor can be called before changing of the object state or after this. 
 
 <a name="Transactions_flush"></a>
-#### Transactions, flush () and etc
+#### Transactions, flush () etc
 
-NFA doesn't begin transaction, doesn't call [Doctrine2](http://doctrine2.readthedocs.io/en/stable/tutorials/getting-started.html) flush(), commit(), rollback(). 
+NFA doesn't manage transaction, doesn't call [Doctrine2](http://doctrine2.readthedocs.io/en/stable/tutorials/getting-started.html) flush(), commit(), rollback(). 
 The programmer should use these on their own.
 
 <a name="Recursive_calls"></a>
-#### Recursive calls and infinite loops defence
+#### Recursive calls and loopback protection
 
 Inside the functors you can call other [NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)
  or the same NFA but with a different object. 

@@ -337,7 +337,7 @@ public function getActions($objE, $data=[])
 <a name="Validators"></a>
 #### Валидаторы действия
 
-Объекты, реализующие `\Zend\Validator\ValidatorInterface`, подчиняющиеся всем стандартным правилам создания и использования вадидаторов в ZF.
+Объекты, реализующие `\Zend\Validator\ValidatorInterface`, подчиняющиеся всем стандартным правилам создания и использования валидаторов в ZF.
 В метод isValid() будет передан объект, над которым совершается действие и массив доп.данных `$data`, передаваемый в методы `doAction()`, `hasAction()`
 
 <a name="Functors"></a>
@@ -354,7 +354,7 @@ public function getActions($objE, $data=[])
 бросать нужные им события.
 
 <a name="Transactions_flush"></a>
-#### Транзакции, flush() и etc
+#### Транзакции, flush() etc
 
 НКА не управляет транзакциями, не вызывает flush(), commit(), rollback(). 
 
