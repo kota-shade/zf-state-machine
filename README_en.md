@@ -137,7 +137,8 @@ abstract class \KotaShade\StateMachine\Service\StateMachine.
     
     In our case, the property is called 'passTicketStatus', so we reload the methods. 
     `getObjectState($objE)` and `setObjectState($objE, $stateE)`
-    [example](example/Ticketcar.php)
+    
+    [example](example/TicketCar.php)
     
     
 <a name="description_of_the_configuration"></a>
