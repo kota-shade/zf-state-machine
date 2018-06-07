@@ -142,7 +142,8 @@ Tаблицы переходов представлены таблицами tr_
     
     В нашем случае свойство называется `passTicketStatus`, поэтому перегружаем методы 
     `getObjectState($objE)` и `setObjectState($objE, $stateE)`
-    [пример реализации](example/Ticketcar.php)
+    
+    [пример реализации](example/TicketCar.php)
     
     
 <a name="description_of_the_configuration"></a>

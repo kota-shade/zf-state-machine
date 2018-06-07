@@ -35,7 +35,7 @@ The features of this non-deterministic finite state machine are:
 Often the application must restrict the access to certain actions on the object.
 [RBAC](https://en.wikipedia.org/wiki/Role-based_access_control)
 -modules do these types of restrictions successfully.
-The RBAC module controls the actions by roles and permissions. But RBAC does not control the possibility of actions depending by the state of the object.
+The RBAC module controls the actions by roles and permissions. But RBAC does not control the possibility of actions depending on the state of the object.
 For example: the pass ticket system. Bob can edit,view,issue the pass while it is in the draft state, but when the pass is issued Bob can only view it.
 This task is successfully solved by using a finite state machine ([NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)).
 
@@ -51,35 +51,39 @@ one-to-many relationship.
    
 The object has the state from state dictionary, and we describe the action's dictionary and the `transition matrix`. 
 `Transition matrix` describes transitions from one to another object's state.
-When we do the `action` on the object the NFA changes the object state from one to another according `transition matrix`. 
-[NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) allows us to have the same state, one other state or one of several states after the action is finished.
+When we do the `action` on the object the NFA changes the object state from one to another according to `transition matrix`. 
+Because we have a nondeterministic finite state machine 
+([NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)), 
+the execution of an action can move an object from the initial state to one of several other states according 
+to the transition matrix, including leaving it in the original state.
+
 
 The [NFA](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) method `doAction()`  gets the object, 
 the action name and the additional data.
 
 1. The NFA verifies whether the action is possible:
-    1. does the action exist in the dictionary 
-    1. does the action exist on the object in the current state according to the `transition matrix`
-    1. additional checks, such as action grants for the current user
+    1. the action itself 
+    1. the possibility to perform an action with an object in the current state according to the `transition matrix`
+    1. additional checks, for example, if the right to perform act is granted for this user
 1. on successful verification:
-    1. NFA finds the new state for the object according to the `transition matrix`
-    1. if some operations are defined to perform before the state changing, NFA does these operations
-    1. NFA changes the object state to a new state
-    1. if some operations are defined to perform after state changing, NFA does these operations
+    1. a new state in which the object will be transferred is defined according to the `transition matrix`
+    1. if defined, actions before transition to a new state are performed
+    1. the object is transferred to a new state
+    1. if additional actions are defined, after the object has been transferred to a new state, they are performed
     
 <a name="Example_of_implementation"></a>
 ## Example of implementation and usage
 Look the car pass ticket system.
-The car pass ticket can have 2 states:
+The car pass ticket could have 2 states:
  1. draft
  1. active
 
-We can do in the `draft` state:
+What we can do in the `draft` state:
  1. view
  1. edit
  1. issue
 
-We can do in the `active` state:
+What we can do in the `active` state:
  1. view
 
 <a name="Create_table_classes"></a>
@@ -101,8 +105,7 @@ Let's load data into database tables:
 Let's create the row in the table `pass_ticket_car` and
 set `draft` into `pass_ticket_status_id` field.
 There are transition tables: `tr_a_ticket_car` (table A) и `tr_b_ticket_car` (table B).
-Names of fields and their intentions are descibed
- in the section [Internal organization--Transition matrix](#transition)
+Names of fields and their description are in the section [Internal organization--Transition matrix](#transition)
 
 <a name="Create_class_of_state_machine"></a>
 #### Create the class of state machine
@@ -137,14 +140,15 @@ abstract class \KotaShade\StateMachine\Service\StateMachine.
     
     In our case, the property is called 'passTicketStatus', so we reload the methods. 
     `getObjectState($objE)` and `setObjectState($objE, $stateE)`
-    [example](example/Ticketcar.php)
+    
+    [example](example/TicketCar.php)
     
     
 <a name="description_of_the_configuration"></a>
 #### The description of the configuration.
 
 The configuration of validators and functors will be included in the module.config.php. 
-I like to keep configuration of validators
+I would like to keep configuration of validators
 and the functors in separate files and include them in the `module.config.php`.
 Example:
 ```php
@@ -158,7 +162,7 @@ return array_merge(
     .....
 ```
 Use aliases for validators (we can use them in transition tables tr_a_ticket_car and tr_b_ticket_car).
-The ValidatorManager is used for validator creation. 
+The ValidatorManager is used for validators creation. 
 
 ```php
 use Test\Validator as ValidatorNS;
@@ -222,7 +226,7 @@ This is the functor example.
 <a name="Use_it"></a>
 #### Use it!
 The following code is an example of how to use the controller's action to check 
-the availability of the action, and to perform the action itself.
+the availability of the action and to perform the action itself.
 
 ```php
     $sm = $this->getSeviceLocator();
@@ -259,7 +263,7 @@ the availability of the action, and to perform the action itself.
 <a name="transition"></a>
 The transition matrix is described by two tables A and B.
 
-The `table A` has fields:
+The `table A` includes the following fields:
 1. `src_id` - the ID of the original state of the object (foreign key to the dictionary of object state),
 1. `action_id`- action ID of the object (foreign key to the action dictionary),
 1. `condition` - name / alias of the validator which will check the possibility of the action
@@ -356,7 +360,7 @@ The functor, in turn, can call other NFA. The functor can be called before chang
 #### Transactions, flush () etc
 
 NFA doesn't manage transaction, doesn't call [Doctrine2](http://doctrine2.readthedocs.io/en/stable/tutorials/getting-started.html) flush(), commit(), rollback(). 
-The programmer should use these on their own.
+The programmer should use these on his own.
 
 <a name="Recursive_calls"></a>
 #### Recursive calls and loopback protection
